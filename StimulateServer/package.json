@@ -1,0 +1,30 @@
+{
+  "name": "authorized-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@dimforge/rapier2d-compat": "^0.19.3",
+    "@eslint/js": "^10.0.1",
+    "@msgpack/msgpack": "^3.1.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "dgram": "^1.0.1",
+    "eslint": "^10.0.2",
+    "tslint": "^5.20.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

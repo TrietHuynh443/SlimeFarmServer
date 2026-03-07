@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    // Enable all strict type checking options
+    "strict": true,
+
+    // Individual strict options (enabled by "strict": true)
+    "noImplicitAny": true, // Error on expressions with implied 'any'
+    "strictNullChecks": true, // null/undefined are distinct types
+    "strictFunctionTypes": true, // Strict checking of function types
+    "strictBindCallApply": true, // Strict bind/call/apply methods
+    "strictPropertyInitialization": true, // Class properties must be initialized
+    "noImplicitThis": true, // Error on 'this' with implied 'any'
+    "useUnknownInCatchVariables": true, // catch clause variables are 'unknown'
+    "alwaysStrict": true, // Emit 'use strict' in output
+
+    // Additional type checking
+    "noUnusedLocals": true, // Error on unused local variables
+    "noUnusedParameters": true, // Error on unused parameters
+    "exactOptionalPropertyTypes": true, // Differentiate undefined vs missing
+    "noImplicitReturns": true, // Error when not all paths return
+    "noFallthroughCasesInSwitch": true, // Error on fallthrough in switch
+    "noUncheckedIndexedAccess": true, // Add undefined to index signatures
+    "noImplicitOverride": true, // Require 'override' keyword
+    "noPropertyAccessFromIndexSignature": true, // Require indexed access,
+
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noEmitOnError": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
