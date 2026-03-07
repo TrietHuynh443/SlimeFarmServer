@@ -1,0 +1,22 @@
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Env / secrets
+.env
+certs/
+*.pem
+*.crt
+
+# Build output
+/bin/
+/dist/
+*.out
+*.exe
+
+# Logs
+*.log
+
+# Optional: local DB volume folder (if you ever bind-mount)
+data/

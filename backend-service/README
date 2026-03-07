@@ -1,0 +1,212 @@
+# README — `backend-service`
+
+## Overview
+`backend-service` is a Go REST API with a PostgreSQL database. It supports running either:
+- **Fully in Docker** (API + Postgres via Docker Compose), or
+- **Hybrid** (Postgres in Docker, API running locally)
+
+---
+
+## Prerequisites
+- **Go**: 1.22+ (local dev only)
+- **Docker** + **Docker Compose**
+- (Optional) **Make**
+- (Optional) **DBeaver** (DB GUI)
+
+> **Corporate network note (Zscaler / TLS inspection)**: Docker builds may fail fetching Go modules with an `x509: certificate signed by unknown authority` error. See **[Corporate certificate setup](#corporate-certificate-setup-zscaler)**.
+
+---
+
+## Repo Structure
+```text
+cmd/api/               # API entrypoint
+internal/http/         # HTTP handlers/routes/middleware
+internal/service/      # business logic
+internal/db/           # DB connection code (+ sqlc-generated code if used)
+migrations/            # goose migrations
+docker-compose.yml     # API + Postgres
+Dockerfile             # API container build
+Makefile               # common commands
+```
+
+---
+
+## Environment Variables
+| Variable | Example | Description |
+|---|---|---|
+| `PORT` | `8080` | API port |
+| `DATABASE_URL` | `postgres://app:app@localhost:5439/backend_service?sslmode=disable` | Postgres connection URL |
+
+### Two `DATABASE_URL` values are normal
+- **From your host machine (goose / DBeaver / local API):**
+  - `postgres://app:app@localhost:5439/backend_service?sslmode=disable`
+- **From inside Docker containers (API → Postgres):**
+  - `postgres://app:app@postgres:5432/backend_service?sslmode=disable`
+
+---
+
+## Quick Start (recommended): run everything in Docker
+
+### 1) Start services
+```bash
+docker compose up -d --build
+```
+
+### 2) Check status / logs
+```bash
+docker compose ps
+docker compose logs -f api
+docker compose logs -f postgres
+```
+
+### 3) Test API
+```bash
+curl -i http://localhost:8080/healthz
+```
+
+---
+
+## Database migrations (Goose)
+
+### Run migrations from your host machine
+Make sure Postgres is running (`docker compose up -d`) and then:
+
+```bash
+export DATABASE_URL='postgres://app:app@localhost:5439/backend_service?sslmode=disable'
+make goose-up
+```
+
+### Create a new migration
+```bash
+make goose-create
+# enter a name like: create_rooms
+```
+
+---
+
+## Local development (hybrid): Postgres in Docker, API on your machine
+
+### 1) Start Postgres only
+```bash
+docker compose up -d postgres
+```
+
+### 2) Run API locally
+```bash
+export PORT=8080
+export DATABASE_URL='postgres://app:app@localhost:5439/backend_service?sslmode=disable'
+go run ./cmd/api
+```
+
+### 3) Test
+```bash
+curl -i http://localhost:8080/healthz
+```
+
+---
+
+## View DB data with DBeaver
+
+Use a **PostgreSQL** connection:
+
+| DBeaver field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5439` |
+| Database | `backend_service` |
+| Username | `app` |
+| Password | `app` |
+| SSL | disabled |
+
+Then browse: **Schemas → public → Tables → right click table → View Data**
+
+---
+
+## Makefile commands
+```bash
+make up          # docker compose up -d --build (if configured)
+make down        # docker compose down
+make logs-api    # follow API logs
+make logs-db     # follow Postgres logs
+
+make goose-create
+make goose-up
+make goose-down
+
+make tidy
+make fmt
+make test
+```
+
+*(Targets may vary depending on your Makefile; adjust this section to match.)*
+
+---
+
+## Corporate certificate setup (Zscaler)
+If Docker build fails during `go mod download` with:
+`x509: certificate signed by unknown authority`
+
+### Option A (simple): copy Zscaler cert into repo (local-only)
+1. Create folder:
+```bash
+mkdir -p certs
+```
+
+2. Copy your cert (example path):
+```bash
+cp /Users/<you>/certs/zscaler.pem certs/zscaler.crt
+```
+
+3. Ensure `Dockerfile` trusts it (builder stage):
+```dockerfile
+COPY certs/zscaler.crt /usr/local/share/ca-certificates/zscaler.crt
+RUN update-ca-certificates
+```
+
+> Recommended: add `certs/*` to `.gitignore` so you don’t commit internal certs.
+
+---
+
+## Troubleshooting
+
+### Postgres connection refused
+1. Verify port mapping:
+```bash
+docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+```
+
+You should see:
+- `0.0.0.0:5439->5432/tcp`
+
+2. If you see `5439->5439`, fix `docker-compose.yml` to:
+```yaml
+ports:
+  - "5439:5432"
+```
+Then restart:
+```bash
+docker compose down
+docker compose up -d
+```
+
+### API can’t connect to DB (when running in Docker)
+Inside Docker, the DB host must be `postgres`:
+- ✅ `postgres://app:app@postgres:5432/backend_service?sslmode=disable`
+- ❌ `postgres://app:app@localhost:5432/...` (localhost is the API container itself)
+
+---
+
+## Contributing / workflow
+1. Create a branch
+2. Add migrations + code
+3. Run:
+```bash
+make fmt
+make test
+```
+4. Open PR
+
+---
+
+If you paste your current `Makefile`, I can tailor the **Make targets** section and ensure the README matches your exact commands.
+
