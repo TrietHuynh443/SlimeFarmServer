@@ -28,5 +28,5 @@ RUN apk add --no-cache ca-certificates && update-ca-certificates
 WORKDIR /app
 COPY --from=builder /bin/api /app/api
 
-EXPOSE 8080
+EXPOSE ${API_INTERNAL_PORT}
 CMD ["/app/api"]

@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     container_name: backend-service-postgres
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: backend_service
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5439:5432"
+      - "${POSTGRES_PUBLIC_PORT}:${POSTGRES_INTERNAL_PORT}"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${POSTGRES_VOLUME}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app -d backend_service"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -22,10 +22,10 @@ services:
       dockerfile: Dockerfile
     container_name: backend-service-api
     environment:
-      PORT: "8080"
-      DATABASE_URL: "postgres://app:app@postgres:5432/backend_service?sslmode=disable"
+      PORT: "${API_INTERNAL_PORT}"
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}?sslmode=disable"
     ports:
-      - "8080:8080"
+      - "${API_PUBLIC_PORT}:${API_INTERNAL_PORT}"
     depends_on:
       postgres:
         condition: service_healthy
