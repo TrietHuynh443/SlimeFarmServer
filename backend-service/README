@@ -194,6 +194,25 @@ Inside Docker, the DB host must be `postgres`:
 - ✅ `postgres://app:app@postgres:5432/backend_service?sslmode=disable`
 - ❌ `postgres://app:app@localhost:5432/...` (localhost is the API container itself)
 
+### Can not find `goose` after start docker
+When you run `make goose-create` or `make goose-up` but it not found `goose`, maybe `go install ...` puts the goose binary into Go’s bin directory, usually:
+- $(go env GOPATH)/bin (most common; often ~/go/bin)
+- or $(go env GOBIN) (if you set it)
+
+1. Verify where goose as installed
+- `go env GOPATH GOBIN`
+- Then try `"$(go env GOPATH)/bin/goose" -version`, it should print a version
+
+2. Add Go bin directory to your PATH (macOS zsh)
+- If you use zsh (default on macOS), add this to ~/.zshrc:
+  ```
+  export PATH="$(go env GOPATH)/bin:$PATH"
+  ```
+
+- Then run bash: `source ~/.zshrc`
+
+- Finally, check `goose -version` - it should work now
+
 ---
 
 ## Contributing / workflow

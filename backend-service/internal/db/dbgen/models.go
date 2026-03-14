@@ -8,6 +8,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Config struct {
+	ID          int64
+	Key         string
+	Value       []byte
+	Description pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type Player struct {
+	ID          int64
+	FkRoomID    pgtype.Int8
+	DisplayName string
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type Room struct {
 	ID        int64
 	Status    string
