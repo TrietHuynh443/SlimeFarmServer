@@ -11,6 +11,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"backend-service/internal/db"
+	"backend-service/internal/db/dbgen"
+	"backend-service/internal/services"
+
+	"backend-service/internal/http/handlers"
+	"backend-service/internal/http/routes"
 )
 
 func main() {
@@ -37,11 +42,21 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(5 * time.Second))
 
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		// optionally check DB ping here if you want
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
+	// DB connection
+	queries := dbgen.New(pool)
+
+	// Services
+	playerAssignmentService := services.NewPlayerAssignmentService(queries)
+
+	// Handlers
+	playerAssignmentHandler := handlers.NewPlayerAssignmentHandler(playerAssignmentService)
+	
+	handlers := routes.Handlers{
+		PlayerAssignment: playerAssignmentHandler,
+	}
+
+	// Routes
+	routes.RegisterRoutes(r, &handlers)
 
 	log.Printf("listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))

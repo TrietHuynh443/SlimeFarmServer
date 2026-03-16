@@ -7,5 +7,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+INSERT INTO rooms (status) VALUES ('active');
+
 -- +goose Down
 DROP TABLE IF EXISTS rooms;

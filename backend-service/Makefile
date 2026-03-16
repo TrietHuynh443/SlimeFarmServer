@@ -30,8 +30,20 @@ run:
 up:
 	docker compose up -d
 
+build:
+	docker compose build --no-cache api
+
 down:
 	docker compose down
+
+apply-new-api:
+	@echo "Stop old backend service..."
+	make down
+	@echo "Build new backend service..."
+	make build
+	@echo "Start new backend service..."
+	make up
+	@echo "New backend service is running..."
 
 logs:
 	docker compose logs -f postgres
