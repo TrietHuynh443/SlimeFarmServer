@@ -7,7 +7,33 @@ package dbgen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createPlayer = `-- name: CreatePlayer :one
+INSERT INTO players (fk_room_id, display_name)
+VALUES ($1, $2)
+RETURNING id, fk_room_id, display_name, created_at, updated_at
+`
+
+type CreatePlayerParams struct {
+	FkRoomID    pgtype.Int8
+	DisplayName string
+}
+
+func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Player, error) {
+	row := q.db.QueryRow(ctx, createPlayer, arg.FkRoomID, arg.DisplayName)
+	var i Player
+	err := row.Scan(
+		&i.ID,
+		&i.FkRoomID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const getPlayerByID = `-- name: GetPlayerByID :one
 SELECT id, fk_room_id, display_name, created_at, updated_at

@@ -9,6 +9,58 @@ import (
 	"context"
 )
 
+const countRooms = `-- name: CountRooms :one
+SELECT COUNT(*) FROM rooms WHERE status != 'deleted'
+`
+
+func (q *Queries) CountRooms(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countRooms)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createRoom = `-- name: CreateRoom :one
+INSERT INTO rooms (status) VALUES ($1) RETURNING id, status, created_at, updated_at
+`
+
+func (q *Queries) CreateRoom(ctx context.Context, status string) (Room, error) {
+	row := q.db.QueryRow(ctx, createRoom, status)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAvailableRoomWithoutPlayerName = `-- name: GetAvailableRoomWithoutPlayerName :one
+SELECT id, status, created_at, updated_at
+FROM rooms
+WHERE status = 'active'
+AND NOT EXISTS (
+	SELECT 1
+	FROM players
+	WHERE fk_room_id = rooms.id
+	AND display_name = $1
+)
+LIMIT 1
+`
+
+func (q *Queries) GetAvailableRoomWithoutPlayerName(ctx context.Context, displayName string) (Room, error) {
+	row := q.db.QueryRow(ctx, getAvailableRoomWithoutPlayerName, displayName)
+	var i Room
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRoomByID = `-- name: GetRoomByID :one
 SELECT id, status, created_at, updated_at
 FROM rooms
