@@ -1,49 +1,49 @@
 import { getSocketInstance } from "./socket.udp";
-import { IMessage, OpCode, serializeMessage } from "./models/message";
+import { Message, OpCode, serializeMessage } from "./models/message";
 import { getWorldAsync } from "./services/rapierService";
-import { roomsModel } from "./models/room";
 import { gameDataModel } from "./models/aggregator";
+import { GameController } from "./controllers/controller.game";
 
-const port = 3000;
+const port = 7777;
 
 let currentTick: number = 0;
+const gameController = new GameController();
 
 function update() {
-  if (roomsModel.length === 0) return;
   ++currentTick;
-  roomsModel.forEach((room) => {
-    const gameData = gameDataModel.get(room.id);
+  // roomsModel.forEach((room) => {
+  //   const gameData = gameDataModel.get(room.id);
 
-    if (!gameData) return;
+  //   if (!gameData) return;
 
-    const message = {
-      meta: {
-        code: OpCode.SYNC_GAME_STATE,
-        tick: currentTick,
-      },
-      data: gameData,
-    } as IMessage<OpCode.SYNC_GAME_STATE>;
+  //   const message = {
+  //     meta: {
+  //       code: OpCode.SYNC_GAME_STATE,
+  //       tick: currentTick,
+  //     },
+  //     data: gameData,
+  //   } as Message;
 
-    const buffer = serializeMessage(message);
+  //   const buffer = serializeMessage(message);
 
-    const players = room.players;
-    const len = players.length;
+  //   const players = room.players;
+  //   const len = players.length;
 
-    for (let i = 0; i < len; i++) {
-      const addr = players[i]?.address;
-      if (!addr) continue;
-      getSocketInstance().send(buffer, addr.port, addr.ipAddress);
-    }
-  });
-  console.log(`sync data to ${roomsModel.length} rooms`);
+  //   for (let i = 0; i < len; i++) {
+  //     const addr = players[i]?.address;
+  //     if (!addr) continue;
+  //     getSocketInstance().send(buffer, addr.port, addr.ipAddress);
+  //   }
+  // });
+  // if (roomsModel.length > 0)
+  //   console.log(`sync data to ${roomsModel.length} rooms`);
 }
 
 async function setupPhysics() {
   await getWorldAsync();
-
   setInterval(() => {
     update();
-  }, 50);
+  }, 500);
 }
 
 setupPhysics().then(() => {

@@ -14,6 +14,7 @@ export const getSocketInstance = (): Socket => {
     });
 
     SOCKET_INSTANCE.on("message", (raw, rinfo) => {
+      console.log("received from ", rinfo.address);
       const message = deserializeMessage(raw);
       if (!message) return;
       handleMessage(message);

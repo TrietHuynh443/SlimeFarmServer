@@ -36,7 +36,15 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": ["@typescript-nameof/types", "node"],
+    "plugins": [
+      {
+        "transform": "@typescript-nameof/nameof"
+      }
+    ]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
