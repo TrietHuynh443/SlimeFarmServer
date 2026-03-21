@@ -11,6 +11,7 @@ import (
 type Handlers struct {
 	PlayerAssignment *handlers.PlayerAssignmentHandler
 	Configs *handlers.ConfigsHandler
+	Authentication *handlers.AuthenticationHandler
 }
 
 func RegisterRoutes(r chi.Router, handlers *Handlers) {
@@ -20,6 +21,9 @@ func RegisterRoutes(r chi.Router, handlers *Handlers) {
 	})
 
 	r.Route("/v1", func(r chi.Router) {
+		r.Post("/register", handlers.Authentication.RegisterUser)
+		r.Post("/login", handlers.Authentication.LoginUser)
+
 		r.Post("/player-assignment", handlers.PlayerAssignment.HandlePlayerAssignment)
 
 		r.Get("/configs", handlers.Configs.GetConfigs)

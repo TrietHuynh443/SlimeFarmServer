@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 
 	"backend-service/internal/db/dbgen"
 )
@@ -24,7 +25,7 @@ func (s *ConfigsService) GetConfigs(ctx context.Context) ([]dbgen.Config, error)
 	return configs, nil
 }
 
-func (s *ConfigsService) UpdateConfig(ctx context.Context, key string, value string) (*dbgen.Config, error) {
+func (s *ConfigsService) UpdateConfig(ctx context.Context, key string, value json.RawMessage) (*dbgen.Config, error) {
 	config, err := s.queries.UpdateConfig(ctx, dbgen.UpdateConfigParams{
 		Key: key,
 		Value: []byte(value),
