@@ -8,3 +8,9 @@ sql:
         package: "dbgen"
         out: "internal/db/dbgen"
         sql_package: "pgx/v5"
+        overrides:
+          - column: "configs.value"
+            go_type:
+              import: "encoding/json"
+              type: "RawMessage"
+        
