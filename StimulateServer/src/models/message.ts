@@ -1,6 +1,18 @@
 import { encode, decode } from "@msgpack/msgpack";
 import { Aggregator } from "./aggregator";
-import { PlayerState } from "./player";
+import "reflect-metadata";
+import {
+  Expose,
+  instanceToPlain,
+  plainToInstance,
+  Transform,
+  Type,
+} from "class-transformer";
+import {
+  PlayerInputMessage,
+  PlayerJoinMessage,
+  PlayerLeaveMessage,
+} from "./message.event";
 
 export enum OpCode {
   SYNC_CLOCK = 0,
@@ -12,42 +24,72 @@ export enum OpCode {
 
 // Map OpCodes to their TypeScript interfaces
 export interface IMessageMap {
-  [OpCode.PLAYER_JOIN]: { roomId: string; state: PlayerState };
-  [OpCode.PLAYER_LEAVE]: { roomId: string; playerId: string };
+  [OpCode.PLAYER_JOIN]: PlayerJoinMessage;
+  [OpCode.PLAYER_LEAVE]: PlayerLeaveMessage;
   [OpCode.SYNC_GAME_STATE]: Aggregator;
-  [OpCode.SYNC_CLOCK]: null;
+  [OpCode.SYNC_CLOCK]: Object;
+  [OpCode.PLAYER_INPUT]: PlayerInputMessage;
 }
 
-export interface IMetaData {
-  code: number;
-  tick: number;
+export class MetaData {
+  @Expose({ name: "c" })
+  code: number = 0;
+
+  @Expose({ name: "t" })
+  tick: number = 0;
 }
 
-export interface IMessage<T extends keyof IMessageMap> {
-  meta: IMetaData;
-  data: IMessageMap[T];
+export class Message {
+  @Expose({ name: "m" })
+  @Type(() => MetaData)
+  meta: MetaData = new MetaData();
+  @Expose({ name: "d" })
+  @Type((options) => {
+    // Look into the raw object's 'm.c' (meta.code) to decide the type
+    const code = options?.newObject?.meta?.code;
+    switch (code) {
+      case OpCode.PLAYER_JOIN:
+        return PlayerJoinMessage;
+      case OpCode.PLAYER_INPUT:
+        return PlayerInputMessage;
+      case OpCode.SYNC_GAME_STATE:
+        return Aggregator;
+      default:
+        return Object; // Fallback
+    }
+  })
+  @Transform(({ obj }) => {
+    return Array.isArray(obj.d) ? obj.d[1] : obj.d;
+  })
+  data: any;
 }
 
 export type AnyMessage = {
-  [K in keyof IMessageMap]: IMessage<K>;
+  [K in keyof IMessageMap]: Message;
 }[keyof IMessageMap];
 
-export const serializeMessage = <T extends keyof IMessageMap>(
-  message: IMessage<T>,
-) => {
-  console.log(message);
-  return encode<IMessage<T>>(message);
+export const serializeMessage = (message: Message) => {
+  const raw = instanceToPlain(message);
+  console.log("message encoded", raw);
+  return encode(raw);
 };
 
-export const deserializeMessage = (data: Buffer): AnyMessage | null => {
+export const deserializeMessage = (
+  data: Uint8Array<ArrayBuffer>,
+): AnyMessage | null => {
   try {
-    const decoded = decode(data) as AnyMessage;
+    const raw = decode(data) as any;
+    console.log("raw decoded", raw);
 
-    if (!decoded.meta || typeof decoded.meta.code !== "number") {
+    if (!raw.m || typeof raw.m.c !== "number") {
       return null;
     }
 
-    return decoded as AnyMessage;
+    const message: Message = plainToInstance(Message, raw);
+
+    console.log("message decoded", message);
+
+    return message;
   } catch (e) {
     return null;
   }
