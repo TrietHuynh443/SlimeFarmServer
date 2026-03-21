@@ -5,13 +5,15 @@
 package dbgen
 
 import (
+	"encoding/json"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Config struct {
 	ID          int64
 	Key         string
-	Value       []byte
+	Value       json.RawMessage
 	Description pgtype.Text
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz

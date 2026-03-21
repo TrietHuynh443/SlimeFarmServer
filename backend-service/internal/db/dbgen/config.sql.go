@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"encoding/json"
 )
 
 const getConfigByID = `-- name: GetConfigByID :one
@@ -18,6 +19,65 @@ LIMIT 1
 
 func (q *Queries) GetConfigByID(ctx context.Context, id int64) (Config, error) {
 	row := q.db.QueryRow(ctx, getConfigByID, id)
+	var i Config
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Value,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listConfigs = `-- name: ListConfigs :many
+SELECT id, key, value, description, created_at, updated_at
+FROM configs
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListConfigs(ctx context.Context) ([]Config, error) {
+	rows, err := q.db.Query(ctx, listConfigs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Config
+	for rows.Next() {
+		var i Config
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Value,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateConfig = `-- name: UpdateConfig :one
+UPDATE configs
+SET value = $2
+WHERE key = $1
+RETURNING id, key, value, description, created_at, updated_at
+`
+
+type UpdateConfigParams struct {
+	Key   string
+	Value json.RawMessage
+}
+
+func (q *Queries) UpdateConfig(ctx context.Context, arg UpdateConfigParams) (Config, error) {
+	row := q.db.QueryRow(ctx, updateConfig, arg.Key, arg.Value)
 	var i Config
 	err := row.Scan(
 		&i.ID,

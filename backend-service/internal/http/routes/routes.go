@@ -10,6 +10,7 @@ import (
 
 type Handlers struct {
 	PlayerAssignment *handlers.PlayerAssignmentHandler
+	Configs *handlers.ConfigsHandler
 }
 
 func RegisterRoutes(r chi.Router, handlers *Handlers) {
@@ -20,5 +21,8 @@ func RegisterRoutes(r chi.Router, handlers *Handlers) {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Post("/player-assignment", handlers.PlayerAssignment.HandlePlayerAssignment)
+
+		r.Get("/configs", handlers.Configs.GetConfigs)
+		r.Put("/configs", handlers.Configs.UpdateConfig)
 	})
 }
