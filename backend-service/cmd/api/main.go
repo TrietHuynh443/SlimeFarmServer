@@ -5,17 +5,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 
 	"backend-service/internal/db"
 	"backend-service/internal/db/dbgen"
 	"backend-service/internal/services"
+	"backend-service/internal/auth"
 
 	"backend-service/internal/http/handlers"
 	"backend-service/internal/http/routes"
+	"backend-service/internal/http/middleware"
 )
 
 func main() {
@@ -37,32 +39,40 @@ func main() {
 	defer pool.Close()
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(5 * time.Second))
 
 	// DB connection
 	queries := dbgen.New(pool)
 
+	// JWT Manager
+	jwtExpiration, err := strconv.Atoi(os.Getenv("JWT_EXPIRATION_IN_MINUTES"))
+	if err != nil {
+		log.Fatal("JWT_EXPIRATION_IN_MINUTES is required")
+		jwtExpiration = 15
+	}
+	jwtManager := &auth.JWTManager{
+		Secret:     os.Getenv("JWT_SECRET"),
+		Expiration: time.Duration(jwtExpiration) * time.Minute,
+	}
+
 	// Services
 	playerAssignmentService := services.NewPlayerAssignmentService(queries)
 	configsService := services.NewConfigsService(queries)
-	authenticationService := services.NewAuthenticationService(queries)
+	authenticationService := services.NewAuthenticationService(queries, jwtManager)
 
 	// Handlers
 	playerAssignmentHandler := handlers.NewPlayerAssignmentHandler(playerAssignmentService)
 	configsHandler := handlers.NewConfigsHandler(configsService)
 	authenticationHandler := handlers.NewAuthenticationHandler(authenticationService)
 
-	handlers := routes.Handlers{
+	deps := routes.Dependencies{
 		PlayerAssignment: playerAssignmentHandler,
 		Configs: configsHandler,
 		Authentication: authenticationHandler,
+		JWTMiddleware: middleware.JWTAuth(jwtManager),
 	}
 
 	// Routes
-	routes.RegisterRoutes(r, &handlers)
+	routes.RegisterRoutes(r, &deps)
 
 	log.Printf("listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))

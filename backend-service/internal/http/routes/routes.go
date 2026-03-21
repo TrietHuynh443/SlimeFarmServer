@@ -8,25 +8,30 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Handlers struct {
+type Dependencies struct {
 	PlayerAssignment *handlers.PlayerAssignmentHandler
 	Configs *handlers.ConfigsHandler
 	Authentication *handlers.AuthenticationHandler
+	JWTMiddleware func(http.Handler) http.Handler
 }
 
-func RegisterRoutes(r chi.Router, handlers *Handlers) {
+func RegisterRoutes(r chi.Router, deps *Dependencies) {
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
 
 	r.Route("/v1", func(r chi.Router) {
-		r.Post("/register", handlers.Authentication.RegisterUser)
-		r.Post("/login", handlers.Authentication.LoginUser)
+		r.Post("/register", deps.Authentication.RegisterUser)
+		r.Post("/login", deps.Authentication.LoginUser)
 
-		r.Post("/player-assignment", handlers.PlayerAssignment.HandlePlayerAssignment)
+		r.Group(func(r chi.Router) {
+			r.Use(deps.JWTMiddleware)
 
-		r.Get("/configs", handlers.Configs.GetConfigs)
-		r.Put("/configs", handlers.Configs.UpdateConfig)
+			r.Post("/player-assignment", deps.PlayerAssignment.HandlePlayerAssignment)
+
+			r.Get("/configs", deps.Configs.GetConfigs)
+			r.Put("/configs", deps.Configs.UpdateConfig)
+		})
 	})
 }

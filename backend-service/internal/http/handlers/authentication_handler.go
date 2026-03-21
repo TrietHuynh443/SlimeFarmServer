@@ -63,13 +63,15 @@ func (handler *AuthenticationHandler) LoginUser(w http.ResponseWriter, r *http.R
 		return
 	}
 	
-	user, err := handler.authenticationService.LoginUser(ctx, request.Username, request.Password)
+	token, err := handler.authenticationService.LoginUser(ctx, request.Username, request.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response := LoginUserResponse{
-		User: user,
-	}
-	_ = json.NewEncoder(w).Encode(response)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"access_token": token,
+		"token_type":   "Bearer",
+	})
 }
