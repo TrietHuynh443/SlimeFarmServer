@@ -54,6 +54,18 @@ func main() {
 		Expiration: time.Duration(jwtExpiration) * time.Minute,
 	}
 
+	// API Key for internal routes
+	apiKeyCredential, err := queries.GetCredentialByName(ctx, "api_key")
+	apiKey := ""
+	if err != nil {
+		log.Fatal("failed to get API key: %v", err)
+	} else {
+		apiKey = apiKeyCredential.Value
+		if apiKey == "" {
+			log.Fatal("API key is empty")
+		}
+	}
+
 	// Services
 	playerAssignmentService := services.NewPlayerAssignmentService(queries)
 	configsService := services.NewConfigsService(queries)
@@ -69,6 +81,7 @@ func main() {
 		Configs: configsHandler,
 		Authentication: authenticationHandler,
 		JWTMiddleware: middleware.JWTAuth(jwtManager),
+		APIKeyMiddleware: middleware.APIKeyAuth(apiKey),
 	}
 
 	// Routes

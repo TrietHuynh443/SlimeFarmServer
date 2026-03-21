@@ -13,6 +13,7 @@ type Dependencies struct {
 	Configs *handlers.ConfigsHandler
 	Authentication *handlers.AuthenticationHandler
 	JWTMiddleware func(http.Handler) http.Handler
+	APIKeyMiddleware func(http.Handler) http.Handler
 }
 
 func RegisterRoutes(r chi.Router, deps *Dependencies) {
@@ -29,6 +30,12 @@ func RegisterRoutes(r chi.Router, deps *Dependencies) {
 			r.Use(deps.JWTMiddleware)
 
 			r.Post("/player-assignment", deps.PlayerAssignment.HandlePlayerAssignment)
+		})
+	})
+
+	r.Route("/internal", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(deps.APIKeyMiddleware)
 
 			r.Get("/configs", deps.Configs.GetConfigs)
 			r.Put("/configs", deps.Configs.UpdateConfig)

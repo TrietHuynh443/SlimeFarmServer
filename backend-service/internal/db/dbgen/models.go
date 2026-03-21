@@ -19,6 +19,14 @@ type Config struct {
 	UpdatedAt   pgtype.Timestamptz
 }
 
+type Credential struct {
+	ID        int64
+	Name      string
+	Value     string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type Player struct {
 	ID          int64
 	FkRoomID    pgtype.Int8
