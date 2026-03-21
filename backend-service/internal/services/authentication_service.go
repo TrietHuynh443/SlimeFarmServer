@@ -6,16 +6,19 @@ import (
 	"strings"
 	"golang.org/x/crypto/bcrypt"
 
+	"backend-service/internal/auth"
 	"backend-service/internal/db/dbgen"
 )
 
 type AuthenticationService struct {
 	queries *dbgen.Queries
+	jwtManager *auth.JWTManager
 }
 
-func NewAuthenticationService(queries *dbgen.Queries) *AuthenticationService {
+func NewAuthenticationService(queries *dbgen.Queries, jwtManager *auth.JWTManager) *AuthenticationService {
 	return &AuthenticationService{
 		queries: queries,
+		jwtManager: jwtManager,
 	}
 }
 
@@ -47,7 +50,7 @@ func (s *AuthenticationService) RegisterUser(ctx context.Context, username strin
 	return &user, nil
 }
 
-func (s *AuthenticationService) LoginUser(ctx context.Context, username string, password string) (*dbgen.User, error) {
+func (s *AuthenticationService) LoginUser(ctx context.Context, username string, password string) (*string, error) {
 	user, err := s.queries.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, errors.New("invalid username or password")
@@ -57,5 +60,6 @@ func (s *AuthenticationService) LoginUser(ctx context.Context, username string, 
 		return nil, errors.New("invalid username or password")
 	}
 
-	return &user, nil
+	token, err := s.jwtManager.Generate(user.ID, user.Username)
+	return &token, nil
 }

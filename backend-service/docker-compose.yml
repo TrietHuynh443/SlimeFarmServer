@@ -24,6 +24,8 @@ services:
     environment:
       PORT: ${API_INTERNAL_PORT}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_INTERNAL_PORT}/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_IN_MINUTES: ${JWT_EXPIRATION_IN_MINUTES}
     ports:
       - "${API_PUBLIC_PORT}:${API_INTERNAL_PORT}"
     depends_on:
