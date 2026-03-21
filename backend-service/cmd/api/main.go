@@ -48,14 +48,17 @@ func main() {
 	// Services
 	playerAssignmentService := services.NewPlayerAssignmentService(queries)
 	configsService := services.NewConfigsService(queries)
+	authenticationService := services.NewAuthenticationService(queries)
 
 	// Handlers
 	playerAssignmentHandler := handlers.NewPlayerAssignmentHandler(playerAssignmentService)
 	configsHandler := handlers.NewConfigsHandler(configsService)
+	authenticationHandler := handlers.NewAuthenticationHandler(authenticationService)
 
 	handlers := routes.Handlers{
 		PlayerAssignment: playerAssignmentHandler,
 		Configs: configsHandler,
+		Authentication: authenticationHandler,
 	}
 
 	// Routes
