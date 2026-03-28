@@ -12,21 +12,36 @@ import (
 )
 
 const createPlayer = `-- name: CreatePlayer :one
-INSERT INTO players (fk_room_id, display_name)
-VALUES ($1, $2)
-RETURNING id, fk_room_id, display_name, created_at, updated_at
+INSERT INTO players (fk_user_id, fk_room_id, display_name)
+VALUES (
+  $1,
+  $2,
+  $3
+)
+RETURNING id, fk_user_id, fk_room_id, display_name, created_at, updated_at
 `
 
 type CreatePlayerParams struct {
+	FkUserID    pgtype.Int8
 	FkRoomID    pgtype.Int8
-	DisplayName string
+	DisplayName pgtype.Text
 }
 
-func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Player, error) {
-	row := q.db.QueryRow(ctx, createPlayer, arg.FkRoomID, arg.DisplayName)
-	var i Player
+type CreatePlayerRow struct {
+	ID          int64
+	FkUserID    pgtype.Int8
+	FkRoomID    pgtype.Int8
+	DisplayName pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (CreatePlayerRow, error) {
+	row := q.db.QueryRow(ctx, createPlayer, arg.FkUserID, arg.FkRoomID, arg.DisplayName)
+	var i CreatePlayerRow
 	err := row.Scan(
 		&i.ID,
+		&i.FkUserID,
 		&i.FkRoomID,
 		&i.DisplayName,
 		&i.CreatedAt,
@@ -36,17 +51,95 @@ func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Pla
 }
 
 const getPlayerByID = `-- name: GetPlayerByID :one
-SELECT id, fk_room_id, display_name, created_at, updated_at
+SELECT id, fk_user_id, fk_room_id, display_name, created_at, updated_at
 FROM players
 WHERE id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetPlayerByID(ctx context.Context, id int64) (Player, error) {
+type GetPlayerByIDRow struct {
+	ID          int64
+	FkUserID    pgtype.Int8
+	FkRoomID    pgtype.Int8
+	DisplayName pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlayerByID(ctx context.Context, id int64) (GetPlayerByIDRow, error) {
 	row := q.db.QueryRow(ctx, getPlayerByID, id)
-	var i Player
+	var i GetPlayerByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.FkUserID,
+		&i.FkRoomID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPlayerByUserID = `-- name: GetPlayerByUserID :one
+SELECT id, fk_user_id, fk_room_id, display_name, created_at, updated_at
+FROM players
+WHERE fk_user_id = $1
+LIMIT 1
+`
+
+type GetPlayerByUserIDRow struct {
+	ID          int64
+	FkUserID    pgtype.Int8
+	FkRoomID    pgtype.Int8
+	DisplayName pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) GetPlayerByUserID(ctx context.Context, fkUserID pgtype.Int8) (GetPlayerByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getPlayerByUserID, fkUserID)
+	var i GetPlayerByUserIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.FkUserID,
+		&i.FkRoomID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePlayer = `-- name: UpdatePlayer :one
+UPDATE players
+SET
+  fk_room_id = COALESCE($1, fk_room_id),
+  display_name = COALESCE($2, display_name)
+WHERE id = $3
+RETURNING id, fk_user_id, fk_room_id, display_name, created_at, updated_at
+`
+
+type UpdatePlayerParams struct {
+	FkRoomID    pgtype.Int8
+	DisplayName pgtype.Text
+	ID          int64
+}
+
+type UpdatePlayerRow struct {
+	ID          int64
+	FkUserID    pgtype.Int8
+	FkRoomID    pgtype.Int8
+	DisplayName pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+func (q *Queries) UpdatePlayer(ctx context.Context, arg UpdatePlayerParams) (UpdatePlayerRow, error) {
+	row := q.db.QueryRow(ctx, updatePlayer, arg.FkRoomID, arg.DisplayName, arg.ID)
+	var i UpdatePlayerRow
+	err := row.Scan(
+		&i.ID,
+		&i.FkUserID,
 		&i.FkRoomID,
 		&i.DisplayName,
 		&i.CreatedAt,

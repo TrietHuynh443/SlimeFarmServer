@@ -4,16 +4,13 @@ FROM rooms
 WHERE id = $1
 LIMIT 1;
 
--- name: GetAvailableRoomWithoutPlayerName :one
-SELECT id, status, created_at, updated_at
-FROM rooms
-WHERE status = 'active'
-AND NOT EXISTS (
-	SELECT 1
-	FROM players
-	WHERE fk_room_id = rooms.id
-	AND display_name = $1
-)
+-- name: GetAvailableRoom :one
+SELECT r.id, r.status, r.created_at, r.updated_at
+FROM rooms r
+LEFT JOIN players p ON p.fk_room_id = r.id
+WHERE r.status = 'active'
+GROUP BY r.id, r.status, r.created_at, r.updated_at
+ORDER BY COUNT(p.id) ASC
 LIMIT 1;
 
 -- name: CountRooms :one

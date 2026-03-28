@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 
 	"backend-service/internal/auth"
@@ -60,6 +63,16 @@ func (s *AuthenticationService) LoginUser(ctx context.Context, username string, 
 		return nil, errors.New("invalid username or password")
 	}
 
-	token, err := s.jwtManager.Generate(user.ID, user.Username)
+	// optional, if no player is found, the player ID will be nil
+	player, err := s.queries.GetPlayerByUserID(ctx, pgtype.Int8{Int64: user.ID, Valid: true})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	token, err := s.jwtManager.Generate(user.ID, user.Username, &player.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &token, nil
 }

@@ -36,21 +36,18 @@ func (q *Queries) CreateRoom(ctx context.Context, status string) (Room, error) {
 	return i, err
 }
 
-const getAvailableRoomWithoutPlayerName = `-- name: GetAvailableRoomWithoutPlayerName :one
-SELECT id, status, created_at, updated_at
-FROM rooms
-WHERE status = 'active'
-AND NOT EXISTS (
-	SELECT 1
-	FROM players
-	WHERE fk_room_id = rooms.id
-	AND display_name = $1
-)
+const getAvailableRoom = `-- name: GetAvailableRoom :one
+SELECT r.id, r.status, r.created_at, r.updated_at
+FROM rooms r
+LEFT JOIN players p ON p.fk_room_id = r.id
+WHERE r.status = 'active'
+GROUP BY r.id, r.status, r.created_at, r.updated_at
+ORDER BY COUNT(p.id) ASC
 LIMIT 1
 `
 
-func (q *Queries) GetAvailableRoomWithoutPlayerName(ctx context.Context, displayName string) (Room, error) {
-	row := q.db.QueryRow(ctx, getAvailableRoomWithoutPlayerName, displayName)
+func (q *Queries) GetAvailableRoom(ctx context.Context) (Room, error) {
+	row := q.db.QueryRow(ctx, getAvailableRoom)
 	var i Room
 	err := row.Scan(
 		&i.ID,

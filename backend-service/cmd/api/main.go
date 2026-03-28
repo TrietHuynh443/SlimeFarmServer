@@ -58,7 +58,7 @@ func main() {
 	apiKeyCredential, err := queries.GetCredentialByName(ctx, "api_key")
 	apiKey := ""
 	if err != nil {
-		log.Fatal("failed to get API key: %v", err)
+		log.Fatalf("failed to get API key: %v", err)
 	} else {
 		apiKey = apiKeyCredential.Value
 		if apiKey == "" {
@@ -67,21 +67,22 @@ func main() {
 	}
 
 	// Services
-	playerAssignmentService := services.NewPlayerAssignmentService(queries)
+	getPlayerRoomService := services.NewGetPlayerRoomService(queries, jwtManager)
 	configsService := services.NewConfigsService(queries)
 	authenticationService := services.NewAuthenticationService(queries, jwtManager)
 
 	// Handlers
-	playerAssignmentHandler := handlers.NewPlayerAssignmentHandler(playerAssignmentService)
+	getPlayerRoomHandler := handlers.NewGetPlayerRoomHandler(getPlayerRoomService)
 	configsHandler := handlers.NewConfigsHandler(configsService)
 	authenticationHandler := handlers.NewAuthenticationHandler(authenticationService)
 
 	deps := routes.Dependencies{
-		PlayerAssignment: playerAssignmentHandler,
+		GetPlayerRoom: getPlayerRoomHandler,
 		Configs: configsHandler,
 		Authentication: authenticationHandler,
 		JWTMiddleware: middleware.JWTAuth(jwtManager),
 		APIKeyMiddleware: middleware.APIKeyAuth(apiKey),
+		OptionalJWTMiddleware: middleware.OptionalJWT(jwtManager),
 	}
 
 	// Routes

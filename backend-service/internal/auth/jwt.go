@@ -11,10 +11,11 @@ type JWTManager struct {
 	Expiration time.Duration
 }
 
-func (m *JWTManager) Generate(userID int64, username string) (string, error) {
+func (m *JWTManager) Generate(userID int64, username string, playerID *int64) (string, error) {
 	claims := Claims{
 		UserID:   userID,
 		Username: username,
+		PlayerID: playerID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.Expiration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

@@ -30,9 +30,10 @@ type Credential struct {
 type Player struct {
 	ID          int64
 	FkRoomID    pgtype.Int8
-	DisplayName string
+	DisplayName pgtype.Text
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+	FkUserID    pgtype.Int8
 }
 
 type Room struct {
