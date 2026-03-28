@@ -9,11 +9,12 @@ import (
 )
 
 type Dependencies struct {
-	GetPlayerRoom *handlers.GetPlayerRoomHandler
-	Configs *handlers.ConfigsHandler
-	Authentication *handlers.AuthenticationHandler
-	JWTMiddleware func(http.Handler) http.Handler
-	APIKeyMiddleware func(http.Handler) http.Handler
+	GetPlayerRoom       *handlers.GetPlayerRoomHandler
+	UpdatePlayer        *handlers.UpdatePlayerHandler
+	Configs             *handlers.ConfigsHandler
+	Authentication      *handlers.AuthenticationHandler
+	JWTMiddleware       func(http.Handler) http.Handler
+	APIKeyMiddleware    func(http.Handler) http.Handler
 	OptionalJWTMiddleware func(http.Handler) http.Handler
 }
 
@@ -36,10 +37,11 @@ func RegisterRoutes(r chi.Router, deps *Dependencies) {
 		})
 
 		// Required JWT authentication
-		// r.Group(func(r chi.Router) {
-		// 	r.Use(deps.JWTMiddleware)
-		// 	r.Post("/<route here>", <handle function here>)
-		// })
+		r.Group(func(r chi.Router) {
+			r.Use(deps.JWTMiddleware)
+
+			r.Patch("/player", deps.UpdatePlayer.UpdatePlayer)
+		})
 	})
 
 	r.Route("/internal", func(r chi.Router) {

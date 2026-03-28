@@ -68,17 +68,20 @@ func main() {
 
 	// Services
 	getPlayerRoomService := services.NewGetPlayerRoomService(queries, jwtManager)
+	updatePlayerService := services.NewUpdatePlayerService(queries)
 	configsService := services.NewConfigsService(queries)
 	authenticationService := services.NewAuthenticationService(queries, jwtManager)
 
 	// Handlers
 	getPlayerRoomHandler := handlers.NewGetPlayerRoomHandler(getPlayerRoomService)
+	updatePlayerHandler := handlers.NewUpdatePlayerHandler(updatePlayerService)
 	configsHandler := handlers.NewConfigsHandler(configsService)
 	authenticationHandler := handlers.NewAuthenticationHandler(authenticationService)
 
 	deps := routes.Dependencies{
 		GetPlayerRoom: getPlayerRoomHandler,
-		Configs: configsHandler,
+		UpdatePlayer:  updatePlayerHandler,
+		Configs:       configsHandler,
 		Authentication: authenticationHandler,
 		JWTMiddleware: middleware.JWTAuth(jwtManager),
 		APIKeyMiddleware: middleware.APIKeyAuth(apiKey),
