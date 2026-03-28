@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GameData",
+  "definitions": {
+    "InputType": {
+      "enum": [0, 1, 2, 3, 4, 5],
+      "x-enumNames": ["NONE ", "UP ", "DOWN ", "LEFT ", "RIGHT ", "FIGHT "],
+      "type": "number"
+    },
+    "MetaData": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "tick": {
+          "type": "number"
+        }
+      },
+      "required": ["code", "tick"],
+      "type": "object"
+    },
+    "PlayerInputMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/InputType"
+        }
+      },
+      "required": ["input"],
+      "type": "object"
+    },
+    "PlayerJoinMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "playerId": {
+          "type": "string"
+        },
+        "roomId": {
+          "type": "string"
+        }
+      },
+      "required": ["roomId", "playerId"],
+      "type": "object"
+    },
+    "PlayerLeaveMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "playerId": {
+          "type": "string"
+        },
+        "roomId": {
+          "type": "string"
+        }
+      },
+      "required": ["roomId", "playerId"],
+      "type": "object"
+    },
+    "PlayerState": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "position": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["id", "position"],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "playerStates": {
+      "items": {
+        "$ref": "#/definitions/PlayerState"
+      },
+      "type": "array"
+    }
+  },
+  "required": ["playerStates"],
+  "type": "object"
+}

@@ -1,9 +1,11 @@
-import { BaseEvent } from "./event";
+import { BaseEvent, EventType } from "./event";
 
 export class EventManager {
   private static eventMap = new Map<string, ((e: any) => void)[]>();
-  public static Register<T extends BaseEvent>(callback: (e: T) => void): void {
-    const eventType = nameof<T>();
+  public static Register<T extends BaseEvent>(
+    eventType: EventType,
+    callback: (e: T) => void,
+  ): void {
     if (!EventManager.eventMap.has(eventType)) {
       this.eventMap.set(eventType, []);
     }
@@ -11,10 +13,9 @@ export class EventManager {
   }
 
   public static Unregister<T extends BaseEvent>(
+    eventType: EventType,
     callback: (e: T) => void,
   ): void {
-    const eventType = nameof<T>();
-
     const callbacks = this.eventMap.get(eventType);
 
     if (callbacks) {
@@ -28,9 +29,15 @@ export class EventManager {
     }
   }
 
-  public static Publish<T extends BaseEvent>(data: T): void {
-    const eventType = nameof<T>();
+  public static Publish<T extends BaseEvent>(
+    eventType: EventType,
+    data: T,
+  ): void {
     const callbacks = this.eventMap.get(eventType);
+    console.log(
+      `[EVT MANAGER] published event: ${eventType} ${JSON.stringify(data)}`,
+    );
+
     if (callbacks) {
       callbacks.forEach((cb) => cb(data));
     }

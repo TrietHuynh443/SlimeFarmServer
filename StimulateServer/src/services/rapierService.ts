@@ -1,10 +1,12 @@
-import RAPIER from "@dimforge/rapier2d-compat";
+import RAPIER, { Collider } from "@dimforge/rapier2d-compat";
 import { EventManager } from "../events/event.manager";
 import {
   PlayerCreatedEvent,
   PlayerKickedEvent,
   PlayerMoveEvent,
 } from "../events/event.game";
+import { EventType } from "../events/event";
+import { PlayerConnectedEvent } from "../events/event.network";
 
 let WORLD: RAPIER.World | null = null;
 
@@ -18,15 +20,20 @@ export const getWorldAsync = async () => {
   return WORLD;
 };
 
-export const createPlayer = (roomId: string, playerId: string) => {
+export const createPlayer = (
+  roomId: string,
+  playerId: string,
+  ip: string,
+  port: number,
+): Collider | undefined => {
   if (!WORLD) {
     console.warn("NO WORLD CREATED getWorldAsync first");
-    return;
+    return undefined;
   }
 
   if (bodyMap.has(playerId)) {
     console.log("Player already exists");
-    return;
+    return undefined;
   }
 
   const rbDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
@@ -37,7 +44,18 @@ export const createPlayer = (roomId: string, playerId: string) => {
 
   bodyMap.set(playerId, playerBody);
 
-  EventManager.Publish(new PlayerCreatedEvent(roomId, playerId, [0, 0]));
+  EventManager.Publish(
+    EventType.PlayerConnectedEvent,
+    new PlayerConnectedEvent(
+      { address: { ipAddress: ip, port: port } },
+      roomId,
+    ),
+  );
+
+  EventManager.Publish(
+    EventType.PlayerCreatedEvent,
+    new PlayerCreatedEvent(roomId, playerId, [0, 0]),
+  );
 
   return WORLD.createCollider(RAPIER.ColliderDesc.capsule(1, 0.5), playerBody);
 };
@@ -54,7 +72,10 @@ export const kickPlayer = (roomId: string, playerId: string) => {
   }
 
   bodyMap.delete(playerId);
-  EventManager.Publish(new PlayerKickedEvent(roomId, playerId));
+  EventManager.Publish(
+    EventType.PlayerKickedEvent,
+    new PlayerKickedEvent(roomId, playerId),
+  );
 };
 
 export const movePlayer = (
@@ -82,6 +103,7 @@ export const movePlayer = (
   playerBody.setTranslation(nextPos, true);
 
   EventManager.Publish(
+    EventType.PlayerMoveEvent,
     new PlayerMoveEvent(roomId, playerId, [nextPos.x, nextPos.y]),
   );
 

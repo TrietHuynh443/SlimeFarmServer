@@ -1,4 +1,4 @@
-import { ConnectionInfo } from "../models/player";
+import { ConnectionInfo } from "../models/connection";
 import { BaseEvent } from "./event";
 
 export class PlayerConnectedEvent extends BaseEvent {

@@ -1,3 +1,5 @@
-import { ConnectionInfo } from "./player";
+import { PlayerAddresses } from "./player";
 
-export const connectionModels = new Map<string, ConnectionInfo[]>();
+export interface ConnectionInfo {
+  address: PlayerAddresses;
+}

@@ -1,10 +1,10 @@
 import dgram, { Socket } from "node:dgram";
-import { handleMessage } from "./handlers/message.handler";
-import { deserializeMessage } from "./models/message";
+import { handleMessage } from "../handlers/handler.message";
+import { deserializeMessage } from "../models/message";
 
 let SOCKET_INSTANCE: Socket | null = null;
 
-export const getSocketInstance = (): Socket => {
+export const getUDPSocketInstance = (): Socket => {
   if (!SOCKET_INSTANCE) {
     SOCKET_INSTANCE = dgram.createSocket("udp4");
 
@@ -14,11 +14,11 @@ export const getSocketInstance = (): Socket => {
     });
 
     SOCKET_INSTANCE.on("message", (raw, rinfo) => {
-      console.log("received from ", rinfo.address);
+      console.log("[MESSAGE] received from ", rinfo.address, rinfo.port);
       const message = deserializeMessage(raw);
       if (!message) return;
-      handleMessage(message);
-      console.log(`server got: ${raw} from ${rinfo.address}:${rinfo.port}`);
+      handleMessage(message, rinfo.address, rinfo.port);
+      console.log(`server got: ${message} from ${rinfo.address}:${rinfo.port}`);
     });
 
     SOCKET_INSTANCE.on("listening", () => {

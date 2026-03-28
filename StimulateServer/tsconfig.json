@@ -38,13 +38,7 @@
     "sourceMap": true,
     "noEmitOnError": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "types": ["@typescript-nameof/types", "node"],
-    "plugins": [
-      {
-        "transform": "@typescript-nameof/nameof"
-      }
-    ]
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
