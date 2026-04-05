@@ -17,8 +17,7 @@ export const getUDPSocketInstance = (): Socket => {
       console.log("[MESSAGE] received from ", rinfo.address, rinfo.port);
       const message = deserializeMessage(raw);
       if (!message) return;
-      handleMessage(message, rinfo.address, rinfo.port);
-      console.log(`server got: ${message} from ${rinfo.address}:${rinfo.port}`);
+      handleMessage(message, rinfo);
     });
 
     SOCKET_INSTANCE.on("listening", () => {

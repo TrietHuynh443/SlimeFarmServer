@@ -3,9 +3,9 @@ export interface PlayerJoinMessage {
   playerId: string;
 }
 
-export class PlayerLeaveMessage {
-  roomId: string = "";
-  playerId: string = "";
+export interface PlayerLeaveMessage {
+  roomId: string;
+  playerId: string;
 }
 export enum InputType {
   NONE = 0,
@@ -16,5 +16,12 @@ export enum InputType {
   FIGHT = 5,
 }
 export interface PlayerInputMessage {
-  input: InputType;
+  roomId: string;
+  playerId: string;
+  input: InputType[];
+}
+
+export interface HealthCheckMessage {
+  roomId: string;
+  playerId: string;
 }

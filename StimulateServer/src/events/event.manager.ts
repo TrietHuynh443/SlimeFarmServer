@@ -29,14 +29,9 @@ export class EventManager {
     }
   }
 
-  public static Publish<T extends BaseEvent>(
-    eventType: EventType,
-    data: T,
-  ): void {
+  public static Publish<T extends BaseEvent>(eventType: EventType, data: T): void {
     const callbacks = this.eventMap.get(eventType);
-    console.log(
-      `[EVT MANAGER] published event: ${eventType} ${JSON.stringify(data)}`,
-    );
+    console.log(`[EVT MANAGER] published event: ${eventType} ${JSON.stringify(data)}`);
 
     if (callbacks) {
       callbacks.forEach((cb) => cb(data));

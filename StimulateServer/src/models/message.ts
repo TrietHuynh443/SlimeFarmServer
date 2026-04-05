@@ -2,6 +2,7 @@ import { encode, decode } from "@msgpack/msgpack";
 import { Aggregator } from "./aggregator";
 import "reflect-metadata";
 import {
+  HealthCheckMessage,
   InputType,
   PlayerInputMessage,
   PlayerJoinMessage,
@@ -20,6 +21,7 @@ export enum OpCode {
   SYNC_GAME_STATE = 2,
   PLAYER_JOIN = 3,
   PLAYER_LEAVE = 4,
+  HEALTH_CHECK = 5,
 }
 
 // Map OpCodes to their TypeScript interfaces
@@ -29,6 +31,7 @@ export interface IMessageMap {
   [OpCode.SYNC_GAME_STATE]: Aggregator;
   [OpCode.SYNC_CLOCK]: null;
   [OpCode.PLAYER_INPUT]: PlayerInputMessage;
+  [OpCode.HEALTH_CHECK]: HealthCheckMessage;
 }
 
 export interface MetaData {
@@ -95,6 +98,20 @@ export const MessageSchemas: Record<OpCode, GameJsonSchema | null> = {
     required: ["playerStates"],
   },
   [OpCode.SYNC_CLOCK]: null,
+  [OpCode.HEALTH_CHECK]: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      roomId: {
+        type: "string",
+      },
+      playerId: {
+        type: "string",
+      },
+    },
+    title: "HealthCheckMessage",
+    required: ["playerStates"],
+  },
 };
 
 const MetaCompressionTable = createCompressionTable(MetaSchema);
@@ -131,9 +148,7 @@ export const serializeMessage = <T extends keyof IMessageMap>(
   return encode(message);
 };
 
-export const deserializeMessage = (
-  data: Uint8Array<ArrayBuffer>,
-): AnyMessage | null => {
+export const deserializeMessage = (data: Uint8Array<ArrayBuffer>): AnyMessage | null => {
   try {
     const decoded = decode(data) as AnyMessage;
     const res = { meta: { code: -1 }, data: {} };
@@ -146,8 +161,6 @@ export const deserializeMessage = (
     if (table && decoded.data) {
       res.data = decompressObject(table, decoded.data);
     }
-
-    console.log("decoded", res);
 
     return res as AnyMessage;
   } catch (e) {

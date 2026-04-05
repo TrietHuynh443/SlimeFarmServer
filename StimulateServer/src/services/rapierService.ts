@@ -1,111 +1,173 @@
-import RAPIER, { Collider } from "@dimforge/rapier2d-compat";
+import RAPIER from "@dimforge/rapier2d-compat";
 import { EventManager } from "../events/event.manager";
-import {
-  PlayerCreatedEvent,
-  PlayerKickedEvent,
-  PlayerMoveEvent,
-} from "../events/event.game";
+import { PlayerMoveEvent } from "../events/event.game";
 import { EventType } from "../events/event";
-import { PlayerConnectedEvent } from "../events/event.network";
+import { InputType } from "../models/message.event";
+import {
+  ActionType,
+  AnyAction,
+  IMoveAction,
+  createDefaultActionPayload,
+} from "../controllers/actions/actions";
+import { PlayerConnectedEvent, PlayerDisconnectedEvent } from "../events/event.network";
 
 let WORLD: RAPIER.World | null = null;
 
-let bodyMap = new Map<string, RAPIER.RigidBody>();
+let bodyMap = new Map<string, RAPIER.Collider>();
+let currentTick: number = 0;
 
-export const getWorldAsync = async () => {
+const INPUT_CONFIG = {
+  [InputType.UP]: ActionType.MOVE,
+  [InputType.DOWN]: ActionType.MOVE,
+  [InputType.LEFT]: ActionType.MOVE,
+  [InputType.RIGHT]: ActionType.MOVE,
+
+  [InputType.FIGHT]: ActionType.CAST,
+} as Record<InputType, ActionType>;
+
+const MOVEMENT_CONFIG: Partial<
+  Record<InputType, { axis: "vertical" | "horizontal"; value: number }>
+> = {
+  [InputType.UP]: { axis: "vertical", value: 1 },
+  [InputType.DOWN]: { axis: "vertical", value: -1 },
+  [InputType.LEFT]: { axis: "horizontal", value: -1 },
+  [InputType.RIGHT]: { axis: "horizontal", value: 1 },
+};
+
+const handlePlayerInput = (roomId: string, playerId: string, inputBatch: InputType[]) => {
+  const res = Array.from(
+    { length: Object.keys(ActionType).length },
+    () => null,
+  ) as (AnyAction | null)[];
+
+  const handle = (inputType: InputType) => {
+    const actionType = INPUT_CONFIG[inputType];
+
+    if (!actionType) return;
+
+    res[actionType] ??= createDefaultActionPayload(actionType);
+
+    if (!res[actionType]) return;
+
+    switch (inputType) {
+      case InputType.UP:
+      case InputType.DOWN:
+      case InputType.LEFT:
+      case InputType.RIGHT: {
+        const moveAction = res[actionType] as IMoveAction;
+        const moveCfg = MOVEMENT_CONFIG[inputType];
+
+        moveAction[moveCfg!.axis] += moveCfg!.value;
+        actions.handlePlayerMove(roomId, playerId, moveAction.horizontal, moveAction.vertical);
+        break;
+      }
+    }
+  };
+
+  inputBatch.forEach((input) => handle(input));
+};
+
+const actions = {
+  handlePlayerMove(roomId: string, playerId: string, horizontal: number, vertical: number) {
+    if (!WORLD) {
+      console.warn("NO WORLD CREATED getWorldAsync first");
+      return;
+    }
+    const collider = bodyMap.get(playerId);
+
+    if (!collider) {
+      console.warn("NO WORLD CREATED getWorldAsync first");
+      return;
+    }
+
+    const rigidBody = collider.parent();
+
+    if (!rigidBody) return;
+
+    const offset = 0.01; // small gap to avoid getting stuck
+    const controller = WORLD.createCharacterController(offset);
+    const desiredTranslation = { x: horizontal, y: vertical };
+
+    controller.computeColliderMovement(collider, desiredTranslation);
+
+    const correctedMovement = controller.computedMovement();
+    const position = rigidBody.translation();
+    position.x += correctedMovement.x;
+    position.y += correctedMovement.y;
+    rigidBody.setTranslation(position, true);
+
+    EventManager.Publish(
+      EventType.PlayerMoveEvent,
+      new PlayerMoveEvent(roomId, playerId, [position.x, position.y]),
+    );
+  },
+
+  createPlayer(playerId: string): RAPIER.Collider | undefined {
+    if (!WORLD) {
+      console.warn("NO WORLD CREATED getWorldAsync first");
+      return undefined;
+    }
+
+    if (bodyMap.has(playerId)) {
+      console.log("Player already exists");
+      return undefined;
+    }
+
+    const rbDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 0);
+    const playerBody = WORLD.createRigidBody(rbDesc);
+
+    bodyMap.set(playerId, WORLD.createCollider(RAPIER.ColliderDesc.capsule(1, 0.5), playerBody));
+
+    return bodyMap.get(playerId);
+  },
+
+  kickPlayer(playerId: string) {
+    if (!WORLD) {
+      console.warn("NO WORLD CREATED getWorldAsync first");
+      return;
+    }
+    const rigid = bodyMap.get(playerId)?.parent();
+    if (!rigid) {
+      console.warn("NO WORLD CREATED getWorldAsync first");
+      return;
+    }
+
+    WORLD.removeRigidBody(rigid);
+    bodyMap.delete(playerId);
+  },
+};
+
+const update = () => {
+  ++currentTick;
+  // EventManager.Publish(EventType.ServerUpdateEvent, new ServerUpdateEvent(++currentTick));
+  WORLD?.step();
+};
+
+const runAsync = async () => {
   if (!WORLD) {
     await RAPIER.init();
     WORLD = new RAPIER.World({ x: 0, y: 0 });
+    registerEvents();
   }
-  return WORLD;
+
+  setInterval(update, 33);
 };
 
-export const createPlayer = (
-  roomId: string,
-  playerId: string,
-  ip: string,
-  port: number,
-): Collider | undefined => {
-  if (!WORLD) {
-    console.warn("NO WORLD CREATED getWorldAsync first");
-    return undefined;
-  }
-
-  if (bodyMap.has(playerId)) {
-    console.log("Player already exists");
-    return undefined;
-  }
-
-  const rbDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
-    0,
-    0,
+function registerEvents() {
+  EventManager.Register<PlayerDisconnectedEvent>(
+    EventType.PlayerDisconnectedEvent,
+    ({ playerConnectionInfo }) => rapierService.kickPlayer(playerConnectionInfo.playerId),
   );
-  const playerBody = WORLD.createRigidBody(rbDesc);
 
-  bodyMap.set(playerId, playerBody);
-
-  EventManager.Publish(
+  EventManager.Register<PlayerConnectedEvent>(
     EventType.PlayerConnectedEvent,
-    new PlayerConnectedEvent(
-      { address: { ipAddress: ip, port: port } },
-      roomId,
-    ),
+    ({ playerConnectionInfo }) => rapierService.createPlayer(playerConnectionInfo.playerId),
   );
+}
 
-  EventManager.Publish(
-    EventType.PlayerCreatedEvent,
-    new PlayerCreatedEvent(roomId, playerId, [0, 0]),
-  );
-
-  return WORLD.createCollider(RAPIER.ColliderDesc.capsule(1, 0.5), playerBody);
-};
-
-export const kickPlayer = (roomId: string, playerId: string) => {
-  if (!WORLD) {
-    console.warn("NO WORLD CREATED getWorldAsync first");
-    return;
-  }
-
-  if (!bodyMap.has(playerId)) {
-    console.warn("NO WORLD CREATED getWorldAsync first");
-    return;
-  }
-
-  bodyMap.delete(playerId);
-  EventManager.Publish(
-    EventType.PlayerKickedEvent,
-    new PlayerKickedEvent(roomId, playerId),
-  );
-};
-
-export const movePlayer = (
-  horizontal: number,
-  vertical: number,
-  roomId: string,
-  playerId: string,
-): void => {
-  if (!WORLD) {
-    console.warn("NO WORLD CREATED getWorldAsync first");
-    return;
-  }
-
-  const playerBody = bodyMap.get(playerId);
-  if (!playerBody) {
-    console.warn(`PLAYER ID ${playerId} not found`);
-    return;
-  }
-
-  const nextPos = playerBody.translation();
-
-  nextPos.x += horizontal;
-  nextPos.y += vertical;
-
-  playerBody.setTranslation(nextPos, true);
-
-  EventManager.Publish(
-    EventType.PlayerMoveEvent,
-    new PlayerMoveEvent(roomId, playerId, [nextPos.x, nextPos.y]),
-  );
-
-  console.log(`Player ${playerId} move to ${nextPos}`);
+export const rapierService = {
+  runAsync,
+  createPlayer: actions.createPlayer,
+  kickPlayer: actions.kickPlayer,
+  handlePlayerInput,
 };

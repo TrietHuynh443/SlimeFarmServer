@@ -5,8 +5,9 @@ export abstract class BaseEvent {
 
 export enum EventType {
   PlayerMoveEvent = "player-move",
-  PlayerCreatedEvent = "player-created",
-  PlayerKickedEvent = "player-kicked",
   PlayerConnectedEvent = "player-connected",
   PlayerDisconnectedEvent = "player-disconnected",
+  ServerUpdateEvent = "server-update-event",
+  PackedSyncDataMessageCompletedEvent = "packed-sync-data-completed",
+  PlayerHealthCheckEvent = "health-check",
 }

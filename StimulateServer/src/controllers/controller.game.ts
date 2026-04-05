@@ -1,39 +1,91 @@
 import { EventType } from "../events/event";
-import { PlayerCreatedEvent } from "../events/event.game";
+import {
+  PackedSyncDataMessageCompletedEvent,
+  PlayerMoveEvent,
+  ServerUpdateEvent,
+} from "../events/event.game";
 import { EventManager } from "../events/event.manager";
-import { Aggregator, gameDataModel } from "../models/aggregator";
+import { PlayerConnectedEvent, PlayerDisconnectedEvent } from "../events/event.network";
+import { gameDataModel } from "../models/aggregator";
+import { IMessage, MetaData, OpCode, serializeMessage } from "../models/message";
+import { PlayerState } from "../models/player";
 
 export class GameController {
   constructor() {
-    EventManager.Register<PlayerCreatedEvent>(
-      EventType.PlayerCreatedEvent,
-      this.OnPlayerCreated,
+    EventManager.Register<PlayerConnectedEvent>(
+      EventType.PlayerConnectedEvent,
+      this.OnPlayerConnected,
     );
+    EventManager.Register<PlayerDisconnectedEvent>(
+      EventType.PlayerDisconnectedEvent,
+      this.OnPlayerDisconnected,
+    );
+    EventManager.Register<ServerUpdateEvent>(EventType.ServerUpdateEvent, this.OnServerUpdated);
+    EventManager.Register<PlayerMoveEvent>(EventType.PlayerMoveEvent, this.OnPlayerMove);
   }
 
-  private OnPlayerCreated = (evt: PlayerCreatedEvent): void => {
-    if (!gameDataModel.has(evt.roomId)) {
-      gameDataModel.set(evt.roomId, { playerStates: [] });
+  public GetPlayerState(roomId: string, pid: string): PlayerState | undefined {
+    return gameDataModel.get(roomId)?.playerStates.find((p) => p.id === pid);
+  }
+
+  private OnPlayerConnected = ({ roomId, playerConnectionInfo }: PlayerConnectedEvent): void => {
+    if (!gameDataModel.has(roomId)) {
+      gameDataModel.set(roomId, { playerStates: [] });
     }
 
     const state = gameDataModel
-      .get(evt.roomId)
-      ?.playerStates.find((state) => state.id === evt.playerId);
+      .get(roomId)
+      ?.playerStates.find((state) => state.id === playerConnectionInfo.playerId);
 
     if (!state) {
-      gameDataModel
-        .get(evt.roomId)
-        ?.playerStates.push({ id: evt.playerId, position: [...evt.position] });
+      gameDataModel.get(roomId)?.playerStates.push({
+        id: playerConnectionInfo.playerId,
+        position: [0, 0],
+      });
     } else {
-      state.position = evt.position;
+      state.position = [0, 0];
     }
   };
 
-  public GetGameData(roomId: string): Aggregator | undefined {
-    return gameDataModel.get(roomId);
-  }
+  private OnServerUpdated = (evt: ServerUpdateEvent): void => {
+    const meta = {
+      tick: evt.serverTick,
+      code: OpCode.SYNC_GAME_STATE,
+    } as MetaData;
+    const messageMap = new Map<string, Uint8Array>();
 
-  public RoomIterator(): Iterable<string> {
-    return gameDataModel.keys();
-  }
+    for (let roomId in gameDataModel.keys()) {
+      const decodedMessage = serializeMessage({
+        meta: meta,
+        data: gameDataModel.get(roomId),
+      } as IMessage<OpCode.SYNC_GAME_STATE>);
+
+      messageMap.set(roomId, decodedMessage);
+    }
+
+    EventManager.Publish(
+      EventType.PackedSyncDataMessageCompletedEvent,
+      new PackedSyncDataMessageCompletedEvent(messageMap),
+    );
+  };
+
+  private OnPlayerMove = (evt: PlayerMoveEvent): void => {
+    const playerState = this.GetPlayerState(evt.roomId, evt.playerId);
+    if (playerState) {
+      playerState.position = { ...evt.position };
+    }
+  };
+
+  private OnPlayerDisconnected = ({
+    roomId,
+    playerConnectionInfo,
+  }: PlayerDisconnectedEvent): void => {
+    const playerStates = gameDataModel.get(roomId);
+    if (playerStates) {
+      const index = playerStates.playerStates.findIndex(
+        (p) => p.id === playerConnectionInfo.playerId,
+      );
+      if (index !== -1) playerStates.playerStates.splice(index, 1);
+    }
+  };
 }
